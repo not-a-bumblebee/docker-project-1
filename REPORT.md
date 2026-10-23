@@ -42,7 +42,7 @@ Changes: multi-stage builds (dependencies installed in a builder stage, copied i
 | Capabilities dropped, no-new-privileges | `cap_drop: ALL`, `security_opt: no-new-privileges` in `docker-compose.yml` |
 | Limited DB user | Services connect as `MYSQL_USER`, not root |
 | Password storage and sessions | bcrypt hashes, JWT verified on every request |
-| Vulnerability scan | Trivy (CRITICAL/HIGH) in CI: [FILL IN: summary, e.g. "0 fixable CRITICAL, N HIGH"] |
+| Vulnerability scan | Trivy (CRITICAL/HIGH) in CI|
 
 Code-level fixes: parameterized SQL queries, input validation (grade 0-100, non-empty course), no hardcoded credentials (the service refuses to start if a required variable is missing).
 

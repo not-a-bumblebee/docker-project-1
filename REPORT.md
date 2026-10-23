@@ -8,6 +8,9 @@
 
 We built the Data Collection and Analytics System (Option 1) as five containers: a web app (Enter Data and Show Results in one container, approved by the instructor), an authentication service, an analytics service, MySQL, and MongoDB. Users log in, submit course grades (stored in MySQL), and view statistics that the analytics service computes from MySQL and stores in MongoDB. See `docs/architecture.png`.
 
+![Architecture](./docs/architecture.png)
+
+
 ## 2. Architecture and design decisions
 
 | Decision | Reason |

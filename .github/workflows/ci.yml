@@ -30,6 +30,7 @@ jobs:
   build-scan-publish:
     needs: test
     runs-on: ubuntu-latest
+    environment: docker
     strategy:
       fail-fast: false
       matrix:

@@ -1,6 +1,6 @@
 # CIT3495 Project 1: Data Collection and Analytics System
 
-**Group 13**: Nicholas, Thuc
+**Group 13**: Nicholas
 
 A containerized microservice system. Users log in, enter course grades, and view analytics (per-course statistics) computed from those grades.
 

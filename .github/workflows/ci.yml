@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, master]        # your repo's branch is "master"; the old file only listed "main"
+    branches: [main, master]
     tags: ['v*']
   pull_request:
 
@@ -28,12 +28,12 @@ jobs:
           python test_app.py
 
   build-scan-publish:
-    needs: test                     # nothing is built or pushed unless the tests pass
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        service: [web-app, auth-service, analytics-service]   # all three images, not just one
+        service: [web-app, auth-service, analytics-service]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -61,8 +61,6 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
 
-      # One single-platform image is loaded locally so Trivy can scan it BEFORE anything is pushed.
-      # (A multi-platform build cannot be loaded, which is what broke the old "load: true" step.)
       - name: Build image for scanning (amd64)
         uses: docker/build-push-action@v6
         with:
@@ -72,13 +70,13 @@ jobs:
           tags: scan-local/${{ matrix.service }}:ci
 
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: scan-local/${{ matrix.service }}:ci
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'            # report only; change to '1' to fail the build on findings
+          exit-code: '0'
 
       - name: Build (amd64 + arm64) and Push
         uses: docker/build-push-action@v6

@@ -1,5 +1,9 @@
 # CIT3495 - Project 1: Data Collection and Analytics System
+# Group 13
 
+## Members:
+Nicholas
+Thuc
 
 ## Instructions
 At the root of the project create a .env file and fill out values for the environment variables:

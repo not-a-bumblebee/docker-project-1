@@ -16,3 +16,8 @@ CREATE TABLE IF NOT EXISTS course_grades (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+REVOKE ALL PRIVILEGES ON analytics_db.* FROM 'appuser'@'%';
+
+GRANT SELECT, INSERT, UPDATE ON analytics_db.users         TO 'appuser'@'%';  -- auth service: log in, seed admin
+GRANT SELECT, INSERT, UPDATE ON analytics_db.course_grades TO 'appuser'@'%';  -- web app inserts, analytics reads

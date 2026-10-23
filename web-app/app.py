@@ -5,21 +5,21 @@ import os
 import requests
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-for-session")
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:3000")
-ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:6000")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL")
+ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL")
 
 def get_mysql_db():
     return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "mysql"),
-        user=os.getenv("DB_USER", "root"),
-        password=os.getenv("DB_PASSWORD", "rootpassword"),
-        database=os.getenv("DB_NAME", "analytics_db")
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
     )
 
 def get_mongo_collection():
-    client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017/"))
+    client = MongoClient(os.getenv("MONGO_URI"))
     return client["analytics_results"]["stats"]
 
 def require_auth():
@@ -46,7 +46,10 @@ def login():
             if resp.status_code == 200:
                 token = resp.json().get("token")
                 out = redirect(url_for('home'))
-                out.set_cookie('token', token)
+                out.set_cookie('token', 
+                    token, 
+                    httponly=True, 
+                    samesite='Strict')
                 return out
             else:
                 error = "Invalid username or password."

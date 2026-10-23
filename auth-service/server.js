@@ -5,29 +5,56 @@ const jwt = require('jsonwebtoken');
 const app = express();
 app.use(express.json());
 
-const JWT_SECRET = process.env.AUTH_TOKEN_SECRET || 'super-secret-jwt-key-change-me';
+// Required settings come from the environment (docker-compose / .env). There are no built-in
+// fallbacks: if one is missing the service stops with a clear message instead of silently
+// running with a guessable default.
+function requireEnv(name) {
+    const value = process.env[name];
+    if (!value) {
+        console.error(`Missing required environment variable: ${name}`);
+        process.exit(1);
+    }
+    return value;
+}
+
+const JWT_SECRET = requireEnv('AUTH_TOKEN_SECRET');
+const ADMIN_USERNAME = requireEnv('ADMIN_USERNAME');
+const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');
+
+// One pool for the whole service (the old getPool() created a brand-new pool on every request).
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'mysql',
+    user: requireEnv('DB_USER'),
+    password: requireEnv('DB_PASSWORD'),
+    database: process.env.DB_NAME || 'analytics_db',
+    waitForConnections: true,
+    connectionLimit: 5
+});
 
 async function getPool() {
-    return mysql.createPool({
-        host: process.env.DB_HOST || 'mysql',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || 'rootpassword',
-        database: process.env.DB_NAME || 'analytics_db',
-        waitForConnections: true,
-        connectionLimit: 5
-    });
+    return pool;
+}
+
+
+// Creates the default admin account for the web app login
+async function seedAdmin() {
+    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [ADMIN_USERNAME]);
+    if (rows.length === 0) {
+        const hashed = await bcrypt.hash(ADMIN_PASSWORD, 10);
+        await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [ADMIN_USERNAME, hashed]);
+        console.log(`Created default user "${ADMIN_USERNAME}".`);
+    } else if (!(await bcrypt.compare(ADMIN_PASSWORD, rows[0].password))) {
+        const hashed = await bcrypt.hash(ADMIN_PASSWORD, 10);
+        await pool.query('UPDATE users SET password = ? WHERE username = ?', [hashed, ADMIN_USERNAME]);
+        console.log(`Updated the password for "${ADMIN_USERNAME}" to match the environment.`);
+    }
 }
 
 async function initDbWithRetry(retries = 15, delay = 3000) {
     for (let i = 0; i < retries; i++) {
         try {
-            const pool = await getPool();
-            const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
-            if (rows.length === 0) {
-                const hashed = await bcrypt.hash('password123', 10);
-                await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', hashed]);
-            }
-            console.log('Auth service database ready and admin seeded.');
+            await seedAdmin();
+            console.log('Auth service database ready.');
             return;
         } catch (err) {
             console.log(`Attempt ${i + 1}/${retries}: Waiting for MySQL tables... (${err.message})`);

@@ -7,14 +7,14 @@ app = Flask(__name__)
 
 def get_mysql_db():
     return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "mysql"),
-        user=os.getenv("DB_USER", "root"),
-        password=os.getenv("DB_PASSWORD", "rootpassword"),
-        database=os.getenv("DB_NAME", "analytics_db")
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
     )
 
 def get_mongo_collection():
-    client = MongoClient(os.getenv("MONGO_URI", "mongodb://mongodb:27017/"))
+    client = MongoClient(os.getenv("MONGO_URI"))
     return client["analytics_results"]["stats"]
 
 @app.route('/trigger-analytics', methods=['POST'])

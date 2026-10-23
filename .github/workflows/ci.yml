@@ -2,27 +2,41 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, master]        # your repo's branch is "master"; the old file only listed "main"
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-scan:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
 
       - name: Run Unit Tests
         working-directory: ./web-app
         run: |
           pip install -r requirements.txt
           python test_app.py
+
+  build-scan-publish:
+    needs: test                     # nothing is built or pushed unless the tests pass
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [web-app, auth-service, analytics-service]   # all three images, not just one
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up QEMU (Multi-Arch support)
         uses: docker/setup-qemu-action@v3
@@ -37,26 +51,40 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Auth Service Image
-        uses: docker/build-push-action@v5
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          context: ./auth-service
-          platforms: linux/amd64,linux/arm64
+          images: ${{ secrets.DOCKER_USERNAME || 'local' }}/${{ matrix.service }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+
+      # One single-platform image is loaded locally so Trivy can scan it BEFORE anything is pushed.
+      # (A multi-platform build cannot be loaded, which is what broke the old "load: true" step.)
+      - name: Build image for scanning (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          platforms: linux/amd64
           load: true
-          tags: auth-service:local
+          tags: scan-local/${{ matrix.service }}:ci
 
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: 'auth-service:local'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
+          image-ref: scan-local/${{ matrix.service }}:ci
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'            # report only; change to '1' to fail the build on findings
 
-      - name: Build and Push Web App Image
-        uses: docker/build-push-action@v5
+      - name: Build (amd64 + arm64) and Push
+        uses: docker/build-push-action@v6
         with:
-          context: ./web-app
+          context: ./${{ matrix.service }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ secrets.DOCKER_USERNAME }}/web-app:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

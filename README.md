@@ -3,7 +3,6 @@
 
 ## Members:
 Nicholas
-Thuc
 
 ## Instructions
 At the root of the project create a .env file and fill out values for the environment variables:

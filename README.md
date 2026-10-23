@@ -14,6 +14,7 @@ MYSQL_PASSWORD=tbd
 FLASK_SECRET_KEY=tbd
 AUTH_TOKEN_SECRET=tbd
 
+### Commands
 
 To start containers
 ```
@@ -24,3 +25,8 @@ To Nuke containers and any stray data
 ```
 docker compose down --volumes --remove-orphans
 ```
+
+### Usage
+got to http://localhost:5000/ and login with:
+username: admin
+password: password123
